@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,21 +13,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         useMaterial3: true,
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
@@ -38,16 +22,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -75,14 +49,90 @@ int countLines(String text) {
   return matches.length + 1;
 }
 
+class HLRange {
+  // final int line; // no lines for now
+  final int start;
+  final int end;
+  final TextStyle style;
+  HLRange({
+    // required this.line,
+    required this.start,
+    required this.end,
+    required this.style,
+  });
+}
+
+class MyTextEditingController extends TextEditingController {
+  final List<HLRange> highlight;
+  MyTextEditingController({required String text, required this.highlight})
+      : super(text: text);
+
+  @override
+  TextSpan buildTextSpan({
+    required context,
+    TextStyle? style,
+    required withComposing,
+  }) {
+    if (highlight.isEmpty) {
+      return TextSpan(style: style, text: text);
+    }
+
+    List<InlineSpan> children = [];
+    var index = 0;
+    final len = text.length;
+    for (final element in highlight) {
+      debugPrint("${element.start}:${element.end}");
+      if (index >= len) break;
+      if (element.start <= index) {
+        children.add(TextSpan(
+          text: text.substring(index, element.end + 1),
+          style: element.style,
+        ));
+        index = element.end + 1;
+      } else {
+        children.add(TextSpan(
+          text: text.substring(index, element.start),
+          style: style,
+        ));
+        if (element.start < len) {
+          children.add(TextSpan(
+            text: text.substring(element.start, element.end + 1),
+            style: element.style,
+          ));
+          index = element.end + 1;
+        } else {
+          index = element.start;
+        }
+      }
+    }
+    debugPrint("index $index len $len");
+    if (index < len) {
+      children.add(TextSpan(
+        text: text.substring(index, len),
+        style: style,
+      ));
+    }
+    return TextSpan(style: style, children: children);
+  }
+}
+
 class _MyHomePageState extends State<MyHomePage> {
-  final TextEditingController _controller = TextEditingController(
+  final TextEditingController _controller = MyTextEditingController(
     text: lines,
+    highlight: [
+      HLRange(start: 0, end: 1, style: const TextStyle(color: Colors.amber)),
+      HLRange(start: 2, end: 6, style: const TextStyle(color: Colors.green)),
+      HLRange(start: 8, end: 12, style: const TextStyle(color: Colors.blue)),
+      HLRange(start: 13, end: 13, style: const TextStyle(color: Colors.cyan)),
+      HLRange(start: 14, end: 16, style: const TextStyle(color: Colors.yellow)),
+      HLRange(start: 33, end: 35, style: const TextStyle(color: Colors.yellow)),
+      HLRange(start: 37, end: 42, style: const TextStyle(color: Colors.grey)),
+    ],
   );
 
   final _focusNode = FocusNode();
   final _style = const TextStyle(
-    color: Colors.deepOrange,
+    color: Colors.white,
     fontWeight: FontWeight.bold,
     fontFamily: "FiraCode",
     fontSize: 24,
@@ -101,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
         n.toString(),
         style: _numberStyle,
       );
-  final _cursorColor = Colors.white;
+  final _cursorColor = Colors.black;
   final _backgroundCursorColor = Colors.grey;
   late int count;
   @override
@@ -136,16 +186,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return DefaultTextStyle(
       style: _style,
       child: Container(
-        color: Colors.black,
+        color: Colors.black87,
         child: SingleChildScrollView(
           child: IntrinsicHeight(
             child: Row(
@@ -162,14 +206,14 @@ class _MyHomePageState extends State<MyHomePage> {
                       mainAxisSize: MainAxisSize.min,
                       children: List.generate(count, text),
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     SizedBox(
                       width: 4,
                       child: Container(
                         color: Colors.red,
                       ),
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                   ],
                 ),
                 Expanded(
